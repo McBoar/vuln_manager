@@ -265,62 +265,81 @@ def rights_session(request, user_ix, users, filenames, rights):
         print('Sorry, there is no files with this name.')
         return users, filenames, rights
 
-    if not(int(rights[user_ix][file_ix]) & 1):
-        print('Sorry, you don\'t own this file.')
-        return users, filenames, rights
-
-    if(right == 'read' or right == 'r'):
-        if(subject == 'all'):
-            if(take_flag):
-                for subject_ix in range(1, len(rights)):
+    if (int(rights[user_ix][file_ix]) & 1):
+        if(right == 'read' or right == 'r'):
+            if(subject == 'all'):
+                if(take_flag):
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (2 ^ 15)
+                else:
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 2
+            else:
+                if(users['logins'].count(subject)):
+                    subject_ix = users['logins'].index(subject)
+                else:
+                    print('Sorry, there is no users with this name.')
+                    return users, filenames, rights
+                if(subject_ix == 0):
+                    print('Sorry, you can\'t change administrator\'s rights.')
+                    return users, filenames, rights
+                if(take_flag):
                     rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (2 ^ 15)
-            else:
-                for subject_ix in range(1, len(rights)):
+                else:
                     rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 2
-        else:
-            if(users['logins'].count(subject)):
-                subject_ix = users['logins'].index(subject)
-            else:
-                print('Sorry, there is no users with this name.')
-                return users, filenames, rights
-            if(subject_ix == 0):
-                print('Sorry, you can\'t change administrator\'s rights.')
-                return users, filenames, rights
-            if(take_flag):
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (2 ^ 15)
-            else:
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 2
 
-    elif(right == 'write' or right == 'w'):
-        if(subject == 'all'):
-            if(take_flag):
-                for subject_ix in range(1, len(rights)):
+        elif(right == 'write' or right == 'w'):
+            if(subject == 'all'):
+                if(take_flag):
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (4 ^ 15)
+                else:
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 4
+            else:
+                if(users['logins'].count(subject)):
+                    subject_ix = users['logins'].index(subject)
+                else:
+                    print('Sorry, there is no users with this name.')
+                    return users, filenames, rights
+                if(subject_ix == 0):
+                    print('Sorry, you can\'t change administrator\'s rights.')
+                    return users, filenames, rights
+                if(take_flag):
                     rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (4 ^ 15)
-            else:
-                for subject_ix in range(1, len(rights)):
+                else:
                     rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 4
-        else:
-            if(users['logins'].count(subject)):
-                subject_ix = users['logins'].index(subject)
+            
+        elif(right == 'append' or right == 'a'):
+            if(subject == 'all'):
+                if(take_flag):
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (8 ^ 15)
+                else:
+                    for subject_ix in range(1, len(rights)):
+                        rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 8
             else:
-                print('Sorry, there is no users with this name.')
-                return users, filenames, rights
-            if(subject_ix == 0):
-                print('Sorry, you can\'t change administrator\'s rights.')
-                return users, filenames, rights
-            if(take_flag):
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (4 ^ 15)
-            else:
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 4
+                if(users['logins'].count(subject)):
+                    subject_ix = users['logins'].index(subject)
+                else:
+                    print('Sorry, there is no users with this name.')
+                    return users, filenames, rights
+                if(subject_ix == 0):
+                    print('Sorry, you can\'t change administrator\'s rights.')
+                    return users, filenames, rights
+                if(take_flag):
+                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (8 ^ 15)
+                else:
+                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 8
         
-    elif(right == 'append' or right == 'a'):
+    elif(right == 'own' or right == 'o'):
         if(subject == 'all'):
             if(take_flag):
                 for subject_ix in range(1, len(rights)):
-                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (8 ^ 15)
+                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (1 ^ 15)
             else:
                 for subject_ix in range(1, len(rights)):
-                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 8
+                    rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 1
         else:
             if(users['logins'].count(subject)):
                 subject_ix = users['logins'].index(subject)
@@ -331,18 +350,14 @@ def rights_session(request, user_ix, users, filenames, rights):
                 print('Sorry, you can\'t change administrator\'s rights.')
                 return users, filenames, rights
             if(take_flag):
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (8 ^ 15)
+                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) & (1 ^ 15)
             else:
-                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 8
+                rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 1
     
-    elif(right == 'own' or right == 'o'):
-        print('You can\'t give or take own right.')
-        return users, filenames, rights
-
     else:
         print('Sorry, there is no such rights.')
         return users, filenames, rights
-    
+
     update_rights(rights)
     print('\nDONE!')
     
