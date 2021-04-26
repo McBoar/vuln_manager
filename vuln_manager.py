@@ -18,10 +18,10 @@ HELP_SESSION = "\n\
 to take RIGHT for FILE_NAME from USER_NAME (or all users)\n\
 [give/g] RIGHT FILE_NAME (USER_NAME or all) - \n\
 to give RIGHT for FILE_NAME to USER_NAME (or all users)\n\
-[show my files/smf] - show all the files you own (ONLY FO USERS!)\n\
-[show rtable/srt] - show rights table (ONLY FOR ADMINISTRATOR!)\n\
-[show utable/sut] - show users table (ONLY FOR ADMINISTRATOR!)\n\
-[show ftable/sft] - show filenames table (ONLY FOR ADMINISTRATOR!)"
+[show my files/smf] - show all the files you own\n\
+[show rtable/srt] - show rights table\n\
+[show utable/sut] - show users table\n\
+[show ftable/sft] - show filenames table"
 
 HELP_LOGIN = "\n\
 [sign/s] - to sign up\n\
@@ -75,8 +75,9 @@ def rights_file_empty():
 
 def get_users():
     if(users_file_empty()):
-        return {'logins'    : ['admin'],
-                 'pswds'     : ['21232f297a57a5a743894a0e4a801fc3']}
+        users = {'logins'   : [],
+                 'pswds'    : []}
+        return users
     file = open(USERS_FILENAME, 'r')
     users_tmp1 = file.read().split('\n')
     users_tmp2 = []
@@ -178,14 +179,14 @@ def files_session(request, user_ix, users, filenames, rights):
             new_ix = filenames.index('')
             filenames[new_ix] = file_name
             for i in range(len(rights)):
-                if(i != user_ix and i != 0):
+                if(i != user_ix):
                     rights[i][new_ix] = '0'
                 else:
                     rights[i][new_ix] = '15'
         else:
             filenames.append(file_name)
             for i in range(len(rights)):
-                if(i != user_ix and i != 0):
+                if(i != user_ix):
                     rights[i].append('0')
                 else:
                     rights[i].append('15')
@@ -390,9 +391,6 @@ def session(user_ix, users, filenames, rights):
             break
         
         if(request == 'delete user' or request == 'du'):
-            if(user_ix == 0):
-                print('Sorry, administrator can\'t delete himself.\n')
-                continue
             pswd = getpass('password: ')
             pswd_hash = hashlib.md5()
             pswd_hash.update(bytes(pswd, 'utf-8'))
@@ -408,10 +406,7 @@ def session(user_ix, users, filenames, rights):
             break
         
         if(request == 'show rtable' or request == 'srt'):
-            if(user_ix == 0):
-                print(rights)
-            else:
-                print('This request is available only for administrator!\n')
+            print(rights)
             continue
         
         if(request == 'show utable' or request == 'sut'):
@@ -419,26 +414,20 @@ def session(user_ix, users, filenames, rights):
             continue
         
         if(request == 'show ftable' or request == 'sft'):
-            if(user_ix == 0):
-                print(filenames)
-            else:
-                print('This request is available only for administrator!\n')
+            print(filenames)
             continue
 
         if(request == 'show my files' or request == 'smf'):
             print('')
-            if(user_ix == 0):
-                print('This users\' request.\n')
+            counter = 0
+            for file_ix in range(len(rights[user_ix])):
+                if(int(rights[user_ix][file_ix]) & 1):
+                    counter += 1
+                    print(filenames[file_ix])
+            if(counter):
+                print('\nTOTAL: {} files.'.format(counter))
             else:
-                counter = 0
-                for file_ix in range(len(rights[user_ix])):
-                    if(int(rights[user_ix][file_ix]) & 1):
-                        counter += 1
-                        print(filenames[file_ix])
-                if(counter):
-                    print('\nTOTAL: {} files.'.format(counter))
-                else:
-                    print('You don\'t own any files yet.')
+                print('You don\'t own any files yet.')
             continue
 
         is_full_sr = (len(request.split(' ')) == 3) and (request.split(' ')[0] + ' ' + request.split(' ')[1] == 'show rights')
@@ -446,8 +435,6 @@ def session(user_ix, users, filenames, rights):
 
         if(is_full_sr or is_short_sr):  
             print('')
-            if(user_ix == 0):
-                print('This users\' request.')
             if(len(request.split(' ')) != 3 and len(request.split(' ')) != 2):
                 print('Sorry, wrong request (wrong nuber of operands).')
                 continue
@@ -567,6 +554,8 @@ def auth(users, filenames, rights):
 user_ix = -1
 
 users = get_users()
+print(users_file_empty())
+print(users)
 filenames = get_filenames()
 rights = get_rights()
 
