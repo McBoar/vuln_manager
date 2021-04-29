@@ -1,5 +1,7 @@
-# a w r o
+#!/usr/bin/env python3
 
+import logging
+import fcntl
 import time
 import hashlib
 from getpass import getpass
@@ -34,6 +36,31 @@ FILES_PATH = './files/'
 USERS_FILENAME = SRC_PATH + 'Users.txt'
 FILES_FILENAME = SRC_PATH + 'Filenames.txt'
 RIGHTS_FILENAME = SRC_PATH + 'Rights.txt'
+
+
+def open_lock():
+    ufile = open(USERS_FILENAME, 'w+')
+    fcntl.flock(ufile, fcntl.LOCK_EX)
+    ffile = open(FILES_FILENAME, 'w+')
+    fcntl.flock(ffile, fcntl.LOCK_EX)
+    rfile = open(RIGHTS_FILENAME, 'w+')
+    fcntl.flock(rfile, fcntl.LOCK_EX)
+    users = get_users(ufile)
+    filenames = get_filenames(ffile)
+    rights = get_rights(rfile)
+    return users, filenames, rights, ufile, ffile, rfile
+
+def unlock_close(users, filenames, rights, ufile, ffile, rfile):
+    update_users(users, ufile)
+    update_filenames(files, ffile)
+    update_rights(rights, rfile)
+    fcntl.flock(ufile, fcntl.LOCK_UN)
+    ufile.close()
+    fcntl.flock(ffile, fcntl.LOCK_UN)
+    ffile.close()
+    fcntl.flock(rfile, fcntl.LOCK_UN)
+    rfile.close()
+    return
 
 def num2rights(number):
     string = ''
@@ -73,42 +100,35 @@ def rights_file_empty():
     file.close()
     return 1
 
-def get_users():
+def get_users(file):
     if(users_file_empty()):
         users = {'logins'   : [],
                  'pswds'    : []}
         return users
-    file = open(USERS_FILENAME, 'r')
     users_tmp1 = file.read().split('\n')
     users_tmp2 = []
     for strings in users_tmp1:
         users_tmp2.append(strings.split(' ')[:-1])
     users = {'logins'   : users_tmp2[0],
              'pswds'    : users_tmp2[1]}
-    file.close()
     return users
 
-def get_filenames():
+def get_filenames(file):
     if(filenames_file_empty()):
         return []
-    file = open(FILES_FILENAME, 'r')
     filenames = file.read().split(' ')[:-1]
-    file.close()
     return filenames
 
-def get_rights():
+def get_rights(file):
     if(rights_file_empty()):
         return [[]]
-    file = open(RIGHTS_FILENAME, 'r')
     rights_tmp = file.read().split('\n')
     rights = []
     for strings in rights_tmp:
         rights.append(strings.split(' ')[:-1])
-    file.close()
     return rights
 
-def update_users(users):
-    file = open(USERS_FILENAME, 'w')
+def update_users(users, file):
     string = ''
     for username in users['logins']:
         string += username + ' '
@@ -116,18 +136,14 @@ def update_users(users):
     for pswd in users['pswds']:
         string += pswd + ' '
     file.write(string)
-    file.close()
 
-def update_filenames(files):
-    file = open(FILES_FILENAME, 'w')
+def update_filenames(files, file):
     string = ''
     for filename in files:
         string += filename + ' '
     file.write(string)
-    file.close()
 
-def update_rights(rights):
-    file = open(RIGHTS_FILENAME, 'w')
+def update_rights(rights, file):
     string = ''
     for i in range(len(rights)):
         for j in range(len(rights[i])):
@@ -136,7 +152,6 @@ def update_rights(rights):
     if(string[-1] == '\n'):
         string = string[:-1]
     file.write(string)
-    file.close()
 
 def create_user(users, login, pswd):
     is_empty_cell = bool(users['logins'].count(''))
@@ -169,12 +184,17 @@ def files_session(request, user_ix, users, filenames, rights):
         text = input()
         if len(text):
             file = open(FILES_PATH + file_name, 'w+')
+            fcntl.flock(file, fcntl.LOCK_EX)
             file.write(text)
         else:
             file = open(FILES_PATH + file_name, 'r')
+            fcntl.flock(file, fcntl.LOCK_EX)
+        fcntl.flock(file, fcntl.LOCK_UN)
         file.close()
 
         is_empty_cell = bool(filenames.count(''))
+        
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
         if(is_empty_cell):
             new_ix = filenames.index('')
             filenames[new_ix] = file_name
@@ -191,8 +211,7 @@ def files_session(request, user_ix, users, filenames, rights):
                 else:
                     rights[i].append('15')
         
-        update_filenames(filenames)
-        update_rights(rights)
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
         print('\nDONE!')
         return users, filenames, rights
                     
@@ -203,40 +222,50 @@ def files_session(request, user_ix, users, filenames, rights):
         return users, filenames, rights
     
     if(type_of_rqst == 'read' or type_of_rqst == 'r'):
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
         if not(int(rights[user_ix][file_ix]) & 2):
             print('Sorry, you don\'t have enough rights.')
         else:
             file = open(FILES_PATH + file_name, 'r')
+            fcntl.flock(file, fcntl.LOCK_EX)
             print('\n{}:\n{}\n{}\n{}'.format(file_name, '_' * 20, file.read(), '_' * 20))
+            fcntl.flock(file, fcntl.LOCK_UN)
             file.close()
         return users, filenames, rights
     
     elif(type_of_rqst == 'write' or type_of_rqst == 'w'):
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
         if not(int(rights[user_ix][file_ix]) & 4):
             print('Sorry, you don\'t have enough rights.')
         else:
             file = open(FILES_PATH + file_name, 'w')
+            fcntl.flock(file, fcntl.LOCK_EX)
             print('Enter new text for the file.\n\n' + file_name + ':\n> ', end = '')
             text = input()
             file.write(text)
+            fcntl.flock(file, fcntl.LOCK_UN)
             file.close()
     
     elif(type_of_rqst == 'append' or type_of_rqst == 'a'):
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
         if not(int(rights[user_ix][file_ix]) & 8):
             print('Sorry, you don\'t have enough rights.')
         else:
             file = open(FILES_PATH + file_name, 'a')
+            fcntl.flock(file, fcntl.LOCK_EX)
             print('\nEnter additional text for the file.\n\n' + file_name + ':\n> ', end = '')
             text = input()
             file.write(text)
+            fcntl.flock(file, fcntl.LOCK_UN)
             file.close()
 
     elif(type_of_rqst == 'delete' or type_of_rqst == 'd'):
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
         filenames[file_ix] = ''
-        for i in range(len(rights)):
-            rights[i][file_ix] = '0'
-        update_filenames(filenames)
-        update_rights(rights)
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
 
     else:
         print('Sorry, wrong type of request.')
@@ -266,6 +295,7 @@ def rights_session(request, user_ix, users, filenames, rights):
         print('Sorry, there is no files with this name.')
         return users, filenames, rights
 
+    users, filenames, rights, ufile, ffile, rfile = open_lock()
     if (int(rights[user_ix][file_ix]) & 1):
         if(right == 'read' or right == 'r'):
             if(subject == 'all'):
@@ -356,10 +386,11 @@ def rights_session(request, user_ix, users, filenames, rights):
                 rights[subject_ix][file_ix] = int(rights[subject_ix][file_ix]) | 1
     
     else:
+        unlock_close(users, filenames, rights, ufile, ffile, rfile)
         print('Sorry, there is no such rights.')
         return users, filenames, rights
 
-    update_rights(rights)
+    unlock_close(users, filenames, rights, ufile, ffile, rfile)
     print('\nDONE!')
     
     return users, filenames, rights
@@ -376,7 +407,10 @@ def session(user_ix, users, filenames, rights):
             new_pswd = getpass('password: ')
             new_pswd_hash = hashlib.md5()
             new_pswd_hash.update(bytes(pswd, 'utf-8'))
-            users = change_pass(users, users['logins'][user_ix], new_pswd_hash.hexdigest())
+
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            users = change_pass(users, users['logins'][user_ix], new_pswd_hash.hexdigest())                
+            unlock_close(users, filenames, rights, ufile, ffile, rfile) 
             continue
 
         if(request == 'exit' or request == 'e'):
@@ -390,34 +424,43 @@ def session(user_ix, users, filenames, rights):
         if(request == 'change user' or request == 'cu'):
             break
         
-        if(request == 'delete user' or request == 'du'):
+        '''if(request == 'delete user' or request == 'du'):
             pswd = getpass('password: ')
             pswd_hash = hashlib.md5()
             pswd_hash.update(bytes(pswd, 'utf-8'))
             if(pswd_hash.hexdigest() != users['pswds'][user_ix]):
                 print('Wrong password!')
+                unlock_close(users, filenames, rights, ufile, ffile, rfile)
                 continue
             users['logins'][user_ix] = ''
             users['pswds'][user_ix] = ''
             for j in range(len(filenames)):
                 rights[user_ix][j] = '0'
-            update_users(users)
-            update_rights(rights)
-            break
+            
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
+            break'''
         
         if(request == 'show rtable' or request == 'srt'):
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print(rights)
             continue
         
         if(request == 'show utable' or request == 'sut'):
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print(users['logins'])
             continue
         
         if(request == 'show ftable' or request == 'sft'):
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print(filenames)
             continue
 
         if(request == 'show my files' or request == 'smf'):
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print('')
             counter = 0
             for file_ix in range(len(rights[user_ix])):
@@ -433,7 +476,9 @@ def session(user_ix, users, filenames, rights):
         is_full_sr = (len(request.split(' ')) == 3) and (request.split(' ')[0] + ' ' + request.split(' ')[1] == 'show rights')
         is_short_sr = len(request.split(' ')) == 2 and request.split(' ')[0] == 'sr'
 
-        if(is_full_sr or is_short_sr):  
+        if(is_full_sr or is_short_sr):
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
+            unlock_close(users, filenames, rights, ufile, ffile, rfile) 
             print('')
             if(len(request.split(' ')) != 3 and len(request.split(' ')) != 2):
                 print('Sorry, wrong request (wrong nuber of operands).')
@@ -445,7 +490,7 @@ def session(user_ix, users, filenames, rights):
             if(filenames.count(file_name)):
                 file_ix = filenames.index(file_name)
             else:
-                print('Sorry, there is no file with this name.')
+                print('Sorry, there is no file with this name.')            
                 continue
             if not(int(rights[user_ix][file_ix]) & 1):
                 print('Sorry, you don\'t own this file.')
@@ -472,6 +517,7 @@ def session(user_ix, users, filenames, rights):
             users, filenames, rights = rights_session(request, user_ix, users, filenames, rights)
         else:
             print('Sorry, wrong type of request.')
+        
         continue
         
     return users, filenames, rights
@@ -516,7 +562,9 @@ def auth(users, filenames, rights):
                     print('Account with this name allready exists. Try again.')
                     continue"""
                 break
+            users, filenames, rights, ufile, ffile, rfile = open_lock()
             users = create_user(users, login, pswd_hash.hexdigest())
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print('You\'ve singed up successfully! You can log in now.')
             continue
 
@@ -527,11 +575,12 @@ def auth(users, filenames, rights):
                 print('\nEnter your login (or empty string to cancel loging in) and password:\nlogin: ', end = '')
                 login = input()
                 if(login == ''):
-                    success
                     break
                 pswd = getpass('password: ')
+                users, filenames, rights, ufile, ffile, rfile = open_lock()
                 if not(users['logins'].count(login)) or (len(pswd) < 2):
                     print('Wrong username or password! Try again.')
+                    unlock_close(users, filenames, rights, ufile, ffile, rfile)
                     time.sleep(2)
                     continue
                 ix = users['logins'].index(login)
@@ -540,22 +589,22 @@ def auth(users, filenames, rights):
                 if(users['pswds'][ix] == pswd_hash.hexdigest()):
                     user_ix = ix
                     success = 1
+                    unlock_close(users, filenames, rights, ufile, ffile, rfile)
                     break
                 else:
                     print('Wrong username or password! Try again.')
+                    unlock_close(users, filenames, rights, ufile, ffile, rfile)
                     time.sleep(2)
                     continue
             if(success):
                 session(user_ix, users, filenames, rights)
 
         else:
-            print('Wrong command!\n')          
+            print('Wrong command!\n')    
 
 user_ix = -1
 
 users = get_users()
-print(users_file_empty())
-print(users)
 filenames = get_filenames()
 rights = get_rights()
 
