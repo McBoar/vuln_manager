@@ -4,7 +4,6 @@ import logging
 import fcntl
 import time
 import hashlib
-from getpass import getpass
 
 HELP_SESSION = "\n\
 [read/r] FILE_NAME - to read file FILE_NAME\n\
@@ -30,8 +29,8 @@ HELP_LOGIN = "\n\
 [login/l] - to log in\n\
 [exit/e] - to quit from file manager"
 
-SRC_PATH = './src/'
-FILES_PATH = './files/'
+SRC_PATH = '/usr/local/bin/vuln_manager-main/src/'
+FILES_PATH = '/usr/local/bin/vuln_manager-main/files/'
 
 USERS_FILENAME = SRC_PATH + 'Users.txt'
 FILES_FILENAME = SRC_PATH + 'Filenames.txt'
@@ -39,11 +38,11 @@ RIGHTS_FILENAME = SRC_PATH + 'Rights.txt'
 
 
 def open_lock():
-    ufile = open(USERS_FILENAME, 'w+')
+    ufile = open(USERS_FILENAME, 'r+')
     fcntl.flock(ufile, fcntl.LOCK_EX)
-    ffile = open(FILES_FILENAME, 'w+')
+    ffile = open(FILES_FILENAME, 'r+')
     fcntl.flock(ffile, fcntl.LOCK_EX)
-    rfile = open(RIGHTS_FILENAME, 'w+')
+    rfile = open(RIGHTS_FILENAME, 'r+')
     fcntl.flock(rfile, fcntl.LOCK_EX)
     users = get_users(ufile)
     filenames = get_filenames(ffile)
@@ -52,7 +51,7 @@ def open_lock():
 
 def unlock_close(users, filenames, rights, ufile, ffile, rfile):
     update_users(users, ufile)
-    update_filenames(files, ffile)
+    update_filenames(filenames, ffile)
     update_rights(rights, rfile)
     fcntl.flock(ufile, fcntl.LOCK_UN)
     ufile.close()
@@ -163,8 +162,6 @@ def create_user(users, login, pswd):
         users['logins'].append(login)
         users['pswds'].append(pswd)
         rights.append(['0'] * len(filenames))
-    update_rights(rights)
-    update_users(users)
     return users
 
 def change_pass(users, login, new_pswd):
@@ -404,7 +401,7 @@ def session(user_ix, users, filenames, rights):
         request = input()
 
         if(request == 'reset password' or request == 'rp'):
-            new_pswd = getpass('password: ')
+            new_pswd = input('password: ')
             new_pswd_hash = hashlib.md5()
             new_pswd_hash.update(bytes(pswd, 'utf-8'))
 
@@ -425,7 +422,7 @@ def session(user_ix, users, filenames, rights):
             break
         
         '''if(request == 'delete user' or request == 'du'):
-            pswd = getpass('password: ')
+            pswd = input('password: ')
             pswd_hash = hashlib.md5()
             pswd_hash.update(bytes(pswd, 'utf-8'))
             if(pswd_hash.hexdigest() != users['pswds'][user_ix]):
@@ -543,13 +540,13 @@ def auth(users, filenames, rights):
                 login = input()
                 if(login == ''):
                     break
-                pswd = getpass('password: ')
+                pswd = input('password: ')
                 if(len(pswd) <= 1):
                     print('Password length must be 2 or more. Try Again.')
                     continue
                 pswd_hash = hashlib.md5()
                 pswd_hash.update(bytes(pswd, 'utf-8'))
-                pswd_conf = getpass('confirm password: ')
+                pswd_conf = input('confirm password: ')
                 pswd_conf_hash = hashlib.md5()
                 pswd_conf_hash.update(bytes(pswd_conf, 'utf-8'))
                 if(pswd_hash.hexdigest() != pswd_conf_hash.hexdigest()):
@@ -576,7 +573,7 @@ def auth(users, filenames, rights):
                 login = input()
                 if(login == ''):
                     break
-                pswd = getpass('password: ')
+                pswd = input('password: ')
                 users, filenames, rights, ufile, ffile, rfile = open_lock()
                 if not(users['logins'].count(login)) or (len(pswd) < 2):
                     print('Wrong username or password! Try again.')
@@ -604,8 +601,6 @@ def auth(users, filenames, rights):
 
 user_ix = -1
 
-users = get_users()
-filenames = get_filenames()
-rights = get_rights()
-
+users, filenames, rights, ufile, ffile, rfile = open_lock()            
+unlock_close(users, filenames, rights, ufile, ffile, rfile) 
 auth(users, filenames, rights)
