@@ -50,8 +50,14 @@ def open_lock():
     return users, filenames, rights, ufile, ffile, rfile
 
 def unlock_close(users, filenames, rights, ufile, ffile, rfile):
+    ufile.truncate(0)
+    ufile.seek(0,0)
     update_users(users, ufile)
+    ffile.truncate(0)
+    ffile.seek(0,0)
     update_filenames(filenames, ffile)
+    rfile.truncate(0)
+    rfile.seek(0,0)
     update_rights(rights, rfile)
     fcntl.flock(ufile, fcntl.LOCK_UN)
     ufile.close()
