@@ -168,7 +168,7 @@ def create_user(users, login, pswd):
         users['logins'].append(login)
         users['pswds'].append(pswd)
         rights.append(['0'] * len(filenames))
-    return users
+    return users, rights
 
 def change_pass(users, login, new_pswd):
     ix = users['logins'].index(login)
@@ -566,7 +566,7 @@ def auth(users, filenames, rights):
                     continue"""
                 break
             users, filenames, rights, ufile, ffile, rfile = open_lock()
-            users = create_user(users, login, pswd_hash.hexdigest())
+            users,rights = create_user(users, login, pswd_hash.hexdigest())
             unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print('You\'ve singed up successfully! You can log in now.')
             continue
