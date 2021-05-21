@@ -10,7 +10,6 @@ HELP_SESSION = "\n\
 [write/w] FILE_NAME - to write in file FILE_NAME\n\
 [append/a] FILE_NAME - to append file FILE_NAME\n\
 [create/c] FILE_NAME - to create file FILE_NAME\n\
-[delete/d] FILE_NAME - to delete file FILE_NAME\n\
 [show rights] FILE_NAME - to users' rights for your file FILE_NAME\n\
 [change user/cu] - go back to auth\n\
 [exit/e] - to quit from file manager\n\
@@ -128,6 +127,8 @@ def get_rights(file):
     if(rights_file_empty()):
         return [[]]
     rights_tmp = file.read().split('\n')
+    if rights_tmp[-1] == '':
+        rights_tmp = rights_tmp[:-1]
     rights = []
     for strings in rights_tmp:
         rights.append(strings.split(' ')[:-1])
@@ -185,34 +186,30 @@ def files_session(request, user_ix, users, filenames, rights):
     if(type_of_rqst == 'create' or type_of_rqst == 'c'):
         print('Enter a text for the file:\n> ', end = '')
         text = input()
+        users, filenames, rights, ufile, ffile, rfile = open_lock()
+        if file_name in filenames:
+            unlock_close(users, filenames, rights, ufile, ffile, rfile)
+            print("Sorry, but such file already exists")
+            return users, filenames, rights
         if len(text):
             file = open(FILES_PATH + file_name, 'w+')
             fcntl.flock(file, fcntl.LOCK_EX)
             file.write(text)
         else:
-            file = open(FILES_PATH + file_name, 'r')
+            try:
+                file = open(FILES_PATH + file_name, 'r')
+            except:
+                file = open(FILES_PATH + file_name, 'w')
             fcntl.flock(file, fcntl.LOCK_EX)
         fcntl.flock(file, fcntl.LOCK_UN)
         file.close()
 
-        is_empty_cell = bool(filenames.count(''))
-        
-        users, filenames, rights, ufile, ffile, rfile = open_lock()
-        if(is_empty_cell):
-            new_ix = filenames.index('')
-            filenames[new_ix] = file_name
-            for i in range(len(rights)):
-                if(i != user_ix):
-                    rights[i][new_ix] = '0'
-                else:
-                    rights[i][new_ix] = '15'
-        else:
-            filenames.append(file_name)
-            for i in range(len(rights)):
-                if(i != user_ix):
-                    rights[i].append('0')
-                else:
-                    rights[i].append('15')
+        filenames.append(file_name)
+        for i in range(len(rights)):
+            if(i != user_ix):
+                rights[i].append('0')
+            else:
+                rights[i].append('15')
         
         unlock_close(users, filenames, rights, ufile, ffile, rfile)
         print('\nDONE!')
@@ -264,11 +261,6 @@ def files_session(request, user_ix, users, filenames, rights):
             file.write(text)
             fcntl.flock(file, fcntl.LOCK_UN)
             file.close()
-
-    elif(type_of_rqst == 'delete' or type_of_rqst == 'd'):
-        users, filenames, rights, ufile, ffile, rfile = open_lock()
-        filenames[file_ix] = ''
-        unlock_close(users, filenames, rights, ufile, ffile, rfile)
 
     else:
         print('Sorry, wrong type of request.')
