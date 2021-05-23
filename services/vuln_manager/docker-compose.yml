@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  vuln-manager:
+    build: .
+    image: vuln-manager:latest
+    ports:
+      - 10081:10081
+

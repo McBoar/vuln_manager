@@ -8,6 +8,8 @@ import socket
 import telnetlib
 from time import sleep
 
+PORT = 10081
+
 
 class WaryTelnet(telnetlib.Telnet):
     def expect(self, list, timeout=None):
@@ -61,7 +63,7 @@ def diff(first, second):
 
 
 if __name__ == "__main__":
-    tn = WaryTelnet("127.0.0.1", 31337, timeout=10)
+    tn = WaryTelnet("127.0.0.1", PORT, timeout=10)
     username = generate_rand(8)
     password = generate_rand(8)
     if not register(tn, username, password):
