@@ -6,6 +6,11 @@ import string
 import sys
 import socket
 import telnetlib
+import os
+import inspect
+
+# DEBUG -- logs to stderr
+DEBUG = os.getenv("DEBUG", True)
 
 OK, CORRUPT, MUMBLE, DOWN, CHECKER_ERROR = 101, 102, 103, 104, 110
 SERVICENAME = "market"
@@ -40,22 +45,26 @@ def close(code, public="", private=""):
 def put(*args): #fixed
     team_addr, flag_id, flag = args[:3]
     tn = WaryTelnet(team_addr, PORT, timeout=10)
-    username, password = generate_rand(8), generate_rand(8)
-    name = generate_rand(8)
+    username, password = generate_rand(16), generate_rand(16)
+    name = generate_rand(16)
     try:
+        _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
             close(MUMBLE)
+        _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
             close(MUMBLE)
+        
+        _log(f"Try create file with name: {name} and content: {flag}")
         create_file(tn, name, flag)
 
         # Exit gracefully.
+        _log(f"Try exit")
         tn.write(b"exit\n")
         tn.write(b"\n")
         new_flag_id = username + ":" + password + ":" + name
         print(new_flag_id, flush=True)
-        die(ExitStatus.OK, new_flag_id)
-        close(OK, "{}".format(name))
+        close(OK, private = new_flag_id)
     except Exception as e:
         close(MUMBLE, private=f"Excepction {e}")
 
@@ -132,29 +141,39 @@ def create_file(tn, name, flag): #fixed
 def check(*args): #fixed
     team_addr = args[0]
     tn = WaryTelnet(team_addr, PORT, timeout=10)
-    username = generate_rand(8)
-    password = generate_rand(8)
+    username = generate_rand(16)
+    password = generate_rand(16)
     name, content= (
-        generate_rand(8),
-        generate_rand(8),
+        generate_rand(16),
+        generate_rand(16),
     )
     try:
+        _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
             close(MUMBLE)
+        _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
             close(MUMBLE)
+        _log(f"Try sft")
         if not sft(tn):
             close(MUMBLE)
+        _log(f"Try sut")
         if not sut(tn):
             close(MUMBLE)
+            
+        _log(f"Try create file with name: {name} and content: {content}")
         create_file(tn, name, content)
         
+        _log(f"Check is file: {name} in sft")
         tn.write(b"sft\n")
         tn.expect([name.encode()], 5)
-        tn.write(b"read" + name.encode() + b"\n")
-        got_content = tn.read_some().decode().split("____________________\n")[1][:-1]
-        if got_content != content:
-            close(CORRUPT, private=f"Got content {got_content}, expected {content}")
+
+        _log(f"Try get content")
+        tn.write(b"read " + name.encode() + b"\n")
+        try:
+            tn.expect([content.encode()], 5)
+        except Exception as e:
+            close(CORRUPT, private=f"Excepction {e}")
         close(OK)
 
     except Exception as e:
@@ -163,17 +182,25 @@ def check(*args): #fixed
 
 def get(*args): #fixed
     team_addr, flag_id, flag = args[:3]
-    username, password, name = flag_id.split(":")
+    try:
+        username, password, name = flag_id.split(sep=":")
+    except:
+        close(
+            CHECKER_ERROR,
+            f"Unexpected flagID from jury: {flag_id}! Are u using non-RuCTF checksystem?",
+        )
     tn = WaryTelnet(team_addr, PORT, timeout=10)
     try:
+        _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
             close(MUMBLE)
+        _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
             close(MUMBLE)
-        
+        _log(f"Try find content: {flag} in file: {name}")
         tn.write(b"sft\n")
         tn.expect([name.encode()], 5)
-        tn.write(b"read" + name.encode() + b"\n")
+        tn.write(b"read " + name.encode() + b"\n")
         tn.expect([flag.encode()], 5)
         close(OK)
 
@@ -181,16 +208,17 @@ def get(*args): #fixed
         close(CORRUPT, private=f"Excepction {e}")
 
 
-def die(code, msg: str): #Kate
-    if msg:
-        print(msg, file=sys.stderr)
-    exit(code)
-
-
 def info(*args): #Kate
     print('{"vulns": 1, "timeout": 30, "attack_data": ""}', flush=True, end="")
     # print("vulns : 1", flush=True, end="")
     exit(101)
+
+
+def _log(msg):
+    if DEBUG:
+        caller = inspect.stack()[1].function
+        print(f"func {caller}, msg: {msg} ", file=sys.stderr)
+    return
 
 
 COMMANDS = {"put": put, "check": check, "get": get, "info": info, "init": init}
