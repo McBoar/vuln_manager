@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  vuln-manager:
+    build: .
+    image: vuln-manager:latest
+    ports:
+      - 10081:10081
+    volumes:
+    - './data/src:/app/src:rw'
+    - './data/files:/app/files:rw'

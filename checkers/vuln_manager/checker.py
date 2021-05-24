@@ -9,7 +9,7 @@ import telnetlib
 
 OK, CORRUPT, MUMBLE, DOWN, CHECKER_ERROR = 101, 102, 103, 104, 110
 SERVICENAME = "market"
-PORT = 31337 #fixed
+PORT = 10081 #fixed
 
 
 class WaryTelnet(telnetlib.Telnet):
@@ -181,10 +181,10 @@ def get(*args): #fixed
         close(CORRUPT, private=f"Excepction {e}")
 
 
-def die(code: ExitStatus, msg: str): #Kate
+def die(code, msg: str): #Kate
     if msg:
         print(msg, file=sys.stderr)
-    exit(code.value)
+    exit(code)
 
 
 def info(*args): #Kate
