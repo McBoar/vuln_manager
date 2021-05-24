@@ -176,16 +176,10 @@ def update_rights(rights, file):
     file.write(string)
 
 
-def create_user(users, login, pswd):
-    is_empty_cell = bool(users['logins'].count(''))
-    if is_empty_cell:
-        new_ix = users['logins'].index('')
-        users['logins'][new_ix] = login
-        users['pswds'][new_ix] = pswd
-    else:
-        users['logins'].append(login)
-        users['pswds'].append(pswd)
-        rights.append(['0'] * len(filenames))
+def create_user(users, rights, filenames, login, pswd):
+    users['logins'].append(login)
+    users['pswds'].append(pswd)
+    rights.append(['0'] * len(filenames))
     return users, rights
 
 
@@ -579,8 +573,14 @@ def auth(users, filenames, rights):
                     print('Account with this name allready exists. Try again.')
                     continue"""
                 break
+            #print(f"len(filnames) befor open_lock is {len(filenames)}")
+            #print(f"len(rights[0]) befor open_lock is {len(rights[0])}")
             users, filenames, rights, ufile, ffile, rfile = open_lock()
-            users, rights = create_user(users, login, pswd_hash.hexdigest())
+            #print(f"len(filnames) after open_lock is {len(filenames)}")
+            #print(f"len(rights[0]) after open_lock is {len(rights[0])}")
+            users, rights = create_user(users, rights, filenames, login, pswd_hash.hexdigest())
+            #print(f"len(filnames) after create_users is {len(filenames)}")
+            #print(f"len(rights[0]) after create_users is {len(rights[0])}")
             unlock_close(users, filenames, rights, ufile, ffile, rfile)
             print('You\'ve singed up successfully! You can log in now.')
             continue
@@ -623,7 +623,12 @@ if __name__ == "__main__":
     user_ix = -1
 
     try:
-        users, filenames, rights, ufile, ffile, rfile = open_lock()
+        file = open(USERS_FILENAME, 'r')
+        file.close()
+        file = open(RIGHTS_FILENAME, 'r')
+        file.close()
+        file = open(FILES_FILENAME, 'r')
+        file.close()
     except:
         print("no files")
         Path(SRC_PATH).mkdir(parents=True, exist_ok=True)
@@ -632,8 +637,6 @@ if __name__ == "__main__":
         Path(USERS_FILENAME).touch(exist_ok=True)
         Path(RIGHTS_FILENAME).touch(exist_ok=True)
         Path(FILES_FILENAME).touch(exist_ok=True)
-
-        users, filenames, rights, ufile, ffile, rfile = open_lock()
-
+    users, filenames, rights, ufile, ffile, rfile = open_lock()
     unlock_close(users, filenames, rights, ufile, ffile, rfile)
     auth(users, filenames, rights)
