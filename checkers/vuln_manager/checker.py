@@ -25,9 +25,11 @@ def put(*args): #fixed
     try:
         _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
+            print("register not working")
             close(MUMBLE)
         _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
+            print("register not working")
             close(MUMBLE)
         
         _log(f"Try create file with name: {name} and content: {flag}")
