@@ -87,6 +87,7 @@ if __name__ == "__main__":
         names[0] = names[0].split("['")[1]
         names[-1] = names[-1].split("'")[0]
         names = [filename for filename in names if len(filename)==16]
+        names = names[-10:]
         #print(names)
         for name in names:
             tn.write(b"create ../files/" + name.encode() + b"\n")
