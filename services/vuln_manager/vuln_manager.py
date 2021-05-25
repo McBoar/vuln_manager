@@ -158,9 +158,9 @@ def update_users(users, file):
     file.write(string)
 
 
-def update_filenames(files, file):
+def update_filenames(filenames, file):
     string = ''
-    for filename in files:
+    for filename in filenames:
         string += filename + ' '
     file.write(string)
 
@@ -193,7 +193,6 @@ def files_session(request, user_ix, users, filenames, rights):
     if len(request.split(' ')) != 2:
         print('Sorry, wrong request (wrong number of operands).\n')
         return users, filenames, rights
-
     type_of_rqst, file_name = request.split(' ')
 
     if type_of_rqst == 'create' or type_of_rqst == 'c':
