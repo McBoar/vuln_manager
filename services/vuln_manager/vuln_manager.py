@@ -4,6 +4,7 @@ import logging
 import fcntl
 import time
 import hashlib
+from time import sleep
 from pathlib import Path
 
 HELP_SESSION = "\n\
@@ -549,6 +550,7 @@ def auth(users, filenames, rights):
 
         elif answer == 'sign' or answer == 's':
             while True:
+                sleep(1)
                 print('\nEnter your login (or empty string to cancel singing up) and password:\nlogin: ', end='')
                 login = input()
                 if login == '':
@@ -587,6 +589,7 @@ def auth(users, filenames, rights):
         elif answer == 'login' or answer == 'l':
             success = 0
             while True:
+                sleep(1)
                 print('\nEnter your login (or empty string to cancel loging in) and password:\nlogin: ', end='')
                 login = input()
                 if login == '':
