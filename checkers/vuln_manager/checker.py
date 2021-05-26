@@ -35,10 +35,8 @@ def put(*args): #fixed
         _log(f"Try create file with name: {name} and content: {flag}")
         create_file(tn, name, flag)
 
-        # Exit gracefully.
-        _log(f"Try exit")
-        tn.write(b"exit\n")
-        tn.write(b"\n")
+        exit_gracefully(tn)
+        
         new_flag_id = username + ":" + password + ":" + name
         print(new_flag_id, flush=True)
         close(OK, private = new_flag_id)
@@ -68,10 +66,6 @@ def check(*args): #fixed
         _log(f"Try create file with name: {name} and content: {content}")
         create_file(tn, name, content)
 
-        _log(f"Try sft")
-        if not sft(tn, name):
-            print("sft not working")
-            close(MUMBLE)
         _log(f"Try sut")
         if not sut(tn, username):
             print("sut not working")
@@ -87,10 +81,8 @@ def check(*args): #fixed
             tn.expect([content.encode()], 5)
         except Exception as e:
             close(CORRUPT, private=f"Excepction {e}")
-        # Exit gracefully.
-        _log(f"Try exit")
-        tn.write(b"exit\n")
-        tn.write(b"\n")
+        
+        exit_gracefully(tn)
         close(OK)
 
     except Exception as e:
@@ -113,14 +105,9 @@ def get(*args): #fixed
             print("auth not working")
             close(MUMBLE)
         _log(f"Try find content: {flag} in file: {name}")
-        tn.write(b"sft\n")
-        tn.expect([name.encode()], 5)
         tn.write(b"read " + name.encode() + b"\n")
         tn.expect([flag.encode()], 5)
-        # Exit gracefully.
-        _log(f"Try exit")
-        tn.write(b"exit\n")
-        tn.write(b"\n")
+        exit_gracefully(tn)
         close(OK)
 
     except Exception as e:
@@ -137,6 +124,11 @@ class WaryTelnet(telnetlib.Telnet):
     def expect_safe(self, list, timeout=None):
         n, match, data = super().expect(list, timeout)
         return n, match, data
+
+def exit_gracefully(tn) # Exit gracefully.
+    _log(f"Try exit")
+    tn.write(b"exit\n")
+    tn.write(b"\n")
 
 
 def generate_rand(N=16):
