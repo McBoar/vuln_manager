@@ -1,6 +1,1 @@
-random
-re
-string
-sys
-socket
-telnetlib
+requests
