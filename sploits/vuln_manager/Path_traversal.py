@@ -70,6 +70,7 @@ def diff(first, second):
 
 if __name__ == "__main__":
     target = str(sys.argv[1])
+    is_send_flags = 0
     if len (sys.argv) > 2:
         is_send_flags = bool(sys.argv[2])
     tn = WaryTelnet(target, PORT, timeout=10)
