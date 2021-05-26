@@ -25,18 +25,16 @@ def put(*args): #fixed
     try:
         _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
-            print("register not working")
-            close(MUMBLE)
+            close(MUMBLE, public="register not working")
         _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
-            print("register not working")
-            close(MUMBLE)
+            close(MUMBLE, public="auth not working")
         
         _log(f"Try create file with name: {name} and content: {flag}")
         create_file(tn, name, flag)
 
         exit_gracefully(tn)
-        
+
         new_flag_id = username + ":" + password + ":" + name
         print(new_flag_id, flush=True)
         close(OK, private = new_flag_id)
@@ -56,24 +54,24 @@ def check(*args): #fixed
     try:
         _log(f"Try register with username: {username}, passwd: {password}")
         if not register(tn, username, password):
-            print("register not working")
-            close(MUMBLE)
+            close(MUMBLE, public="register not working")
         _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
-            print("auth not working")
-            close(MUMBLE)
+            close(MUMBLE, public="auth not working")
             
         _log(f"Try create file with name: {name} and content: {content}")
         create_file(tn, name, content)
 
         _log(f"Try sut")
         if not sut(tn, username):
-            print("sut not working")
-            close(MUMBLE)
+            close(MUMBLE, public="sut not working")
 
         _log(f"Check is file: {name} in sft")
         tn.write(b"sft\n")
-        tn.expect([name.encode()], 5)
+        try:
+            tn.expect([name.encode()], 5)
+        except Exception as e:
+            close(MUMBLE, public="sft not working")
 
         _log(f"Try get content")
         tn.write(b"read " + name.encode() + b"\n")
@@ -102,8 +100,7 @@ def get(*args): #fixed
     try:
         _log(f"Try auth with username: {username}, passwd: {password}")
         if not authorize(tn, username, password):
-            print("auth not working")
-            close(MUMBLE)
+            close(MUMBLE, public="auth not working")
         _log(f"Try find content: {flag} in file: {name}")
         tn.write(b"read " + name.encode() + b"\n")
         tn.expect([flag.encode()], 5)
@@ -125,7 +122,7 @@ class WaryTelnet(telnetlib.Telnet):
         n, match, data = super().expect(list, timeout)
         return n, match, data
 
-def exit_gracefully(tn) # Exit gracefully.
+def exit_gracefully(tn): # Exit gracefully.
     _log(f"Try exit")
     tn.write(b"exit\n")
     tn.write(b"\n")
@@ -197,7 +194,7 @@ def sut(tn,username): #fixed
         tn.expect([username.encode()], 5)
         return True
     except Exception as e:
-        close(MUMBLE, private=f"Excepction {e}")
+        close(MUMBLE, public="sut not working", private=f"Excepction {e}")
 
 
 def create_file(tn, name, flag): #fixed
@@ -214,8 +211,8 @@ def create_file(tn, name, flag): #fixed
 
 
 def info(*args): #Kate
-    # print('{"vulns": 1, "timeout": 30, "attack_data": ""}', flush=True, end="")
-    print("vulns: 1", flush=True, end="")
+    print('{"vulns": 1, "timeout": 30, "attack_data": ""}', flush=True, end="")
+    # print("vulns: 1", flush=True, end="")
     exit(101)
 
 
