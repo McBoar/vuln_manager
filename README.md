@@ -16,6 +16,7 @@ pure python, access control
 
 # Развёртывание
 cd ./services/vuln_manager
+
 docker-compose up -d
 
 # Contributors
